@@ -20,6 +20,7 @@ import type { CSSProperties } from "react";
 import { AgentLegend } from "./AgentLegend";
 import FloatingConnectionLine from "./FloatingConnectionLine";
 import FloatingEdge from "./FloatingEdge";
+import { HierarchicalListView } from "./HierarchicalListView";
 import { LayoutControls } from "./LayoutControls";
 import { NodeDetailSidebar } from "./NodeDetailSidebar";
 import { VirtualizedDAG } from "./VirtualizedDAG";
@@ -1205,6 +1206,39 @@ function decorateEdgesWithStatus(
     },
     []
   );
+
+  // Render Hierarchical view
+  if (currentLayout === 'hierarchical') {
+    return (
+      <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+        <HierarchicalListView
+          nodes={decoratedNodes}
+          onNodeClick={handleNodeClick}
+          workflowId={workflowId}
+          viewMode={viewMode}
+          durationStats={durationStats}
+        />
+        <div style={{ position: 'absolute', top: 16, left: 16, zIndex: 10 }}>
+          <AgentLegend
+            onAgentFilter={handleAgentFilter}
+            selectedAgent={selectedAgent}
+            compact={false}
+            nodes={nodes}
+          />
+        </div>
+        <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 10 }}>
+          <LayoutControls />
+        </div>
+        {selectedNode && (
+          <NodeDetailSidebar
+            node={selectedNode}
+            isOpen={sidebarOpen}
+            onClose={handleCloseSidebar}
+          />
+        )}
+      </div>
+    );
+  }
 
   // Render DeckGL view for large graphs
   if (shouldUseDeckGL && deckGraphData) {
