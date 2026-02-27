@@ -12,24 +12,63 @@ import { EnhancedWorkflowOverview } from "../components/workflow/EnhancedWorkflo
 import { EnhancedWorkflowIdentity } from "../components/workflow/EnhancedWorkflowIdentity";
 import { EnhancedWorkflowWebhooks } from "../components/workflow/EnhancedWorkflowWebhooks";
 import { ErrorBoundary } from "../components/ErrorBoundary";
+import { HierarchicalListView } from "../components/WorkflowDAG/HierarchicalListView";
+import { AgentFilterBar } from "../components/WorkflowDAG/AgentFilterBar";
+import { NodeDetailSidebar } from "../components/WorkflowDAG/NodeDetailSidebar";
 import { getWorkflowRunSummary } from "../services/workflowsApi";
 import { getWorkflowVCChain } from "../services/vcApi";
 import { useWorkflowDAGSmart } from "../hooks/useWorkflowDAG";
 import type { WorkflowSummary } from "../types/workflows";
 import type { WorkflowVCChainResponse } from "../types/did";
+import type { Node } from "@xyflow/react";
 import { normalizeExecutionStatus } from "../utils/status";
 
-type TabType = 'graph' | 'io' | 'webhooks' | 'notes' | 'identity' | 'insights';
+type TabType = 'graph' | 'list' | 'io' | 'webhooks' | 'notes' | 'identity' | 'insights';
 
-const WORKFLOW_TAB_VALUES = ['graph', 'io', 'webhooks', 'notes', 'identity', 'insights'] as const;
+const WORKFLOW_TAB_VALUES = ['graph', 'list', 'io', 'webhooks', 'notes', 'identity', 'insights'] as const;
 const DEFAULT_WORKFLOW_TAB: TabType = 'graph';
 
 function isWorkflowTab(value: string | null): value is TabType {
   return value !== null && WORKFLOW_TAB_VALUES.includes(value as TabType);
 }
 
-function resolveWorkflowTab(value: string | null): TabType {
-  return isWorkflowTab(value) ? value : DEFAULT_WORKFLOW_TAB;
+function getWorkflowViewPreference(workflowId: string): TabType | null {
+  try {
+    const stored = localStorage.getItem(`workflowViewPreference:${workflowId}`);
+    if (stored === 'graph' || stored === 'list') {
+      return stored;
+    }
+  } catch {
+    // localStorage unavailable
+  }
+  return null;
+}
+
+function setWorkflowViewPreference(workflowId: string, tab: 'graph' | 'list') {
+  try {
+    localStorage.setItem(`workflowViewPreference:${workflowId}`, tab);
+  } catch {
+    // localStorage unavailable
+  }
+}
+
+function resolveWorkflowTab(value: string | null, workflowId?: string): TabType {
+  // If URL has an explicit non-graph/non-null tab, use it directly
+  if (isWorkflowTab(value) && value !== 'graph') {
+    return value;
+  }
+  // For no tab or tab=graph (the default), check localStorage preference
+  if (workflowId) {
+    const preference = getWorkflowViewPreference(workflowId);
+    if (preference) {
+      return preference;
+    }
+  }
+  // If URL explicitly says graph, or no preference stored, use graph
+  if (isWorkflowTab(value)) {
+    return value;
+  }
+  return DEFAULT_WORKFLOW_TAB;
 }
 
 export function EnhancedWorkflowDetailPage() {
@@ -44,13 +83,18 @@ export function EnhancedWorkflowDetailPage() {
   const [error, setError] = useState<string | null>(null);
 
   // UI state derived from URL
-  const activeTab = resolveWorkflowTab(searchParams.get('tab'));
+  const activeTab = resolveWorkflowTab(searchParams.get('tab'), runId);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Enhanced workflow state
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
   const [focusMode, setFocusMode] = useState(false);
   const [viewMode, setViewMode] = useState<'standard' | 'performance' | 'debug'>('standard');
+
+  // List tab state
+  const [listSelectedNode, setListSelectedNode] = useState<Node | null>(null);
+  const [listSidebarOpen, setListSidebarOpen] = useState(false);
+  const [listSelectedAgent, setListSelectedAgent] = useState<string | null>(null);
 
   // Use smart polling hook for DAG data
   const {
@@ -143,6 +187,46 @@ export function EnhancedWorkflowDetailPage() {
     timelineTerminal,
   ]);
 
+  // Convert timeline data to Node[] for HierarchicalListView
+  const listViewNodes = useMemo<Node[]>(() => {
+    const timeline = dagData?.timeline ?? [];
+    return timeline.map((execution) => ({
+      id: execution.execution_id,
+      type: "workflow",
+      position: { x: 0, y: 0 },
+      data: {
+        ...execution,
+        viewMode,
+      },
+    }));
+  }, [dagData?.timeline, viewMode]);
+
+  // Filter nodes by selected agent
+  const filteredListViewNodes = useMemo<Node[]>(() => {
+    if (!listSelectedAgent) return listViewNodes;
+    return listViewNodes.filter((node) => {
+      const data = node.data as Record<string, unknown>;
+      const agentName = (data.agent_name as string) || (data.agent_node_id as string);
+      return agentName === listSelectedAgent;
+    });
+  }, [listViewNodes, listSelectedAgent]);
+
+  // Handle node click in list view
+  const handleListNodeClick = useCallback((node: Node) => {
+    setListSelectedNode(node);
+    setListSidebarOpen(true);
+  }, []);
+
+  // Handle agent filter in list view
+  const handleListAgentFilter = useCallback((agentName: string | null) => {
+    setListSelectedAgent(agentName);
+  }, []);
+
+  // Handle list sidebar close
+  const handleListSidebarClose = useCallback(() => {
+    setListSidebarOpen(false);
+  }, []);
+
   useEffect(() => {
     if (!runId) {
       navigate("/workflows");
@@ -194,6 +278,11 @@ export function EnhancedWorkflowDetailPage() {
       setSelectedNodeIds([dagData.timeline[0].execution_id]);
     }
 
+    // Persist graph/list preference per workflow
+    if (runId && (tab === 'graph' || tab === 'list')) {
+      setWorkflowViewPreference(runId, tab);
+    }
+
     if (tab === activeTab) {
       return;
     }
@@ -201,7 +290,7 @@ export function EnhancedWorkflowDetailPage() {
     const params = new URLSearchParams(searchParams);
     params.set('tab', tab);
     setSearchParams(params, { replace: false });
-  }, [activeTab, dagData?.timeline, searchParams, selectedNodeIds.length, setSearchParams]);
+  }, [activeTab, dagData?.timeline, runId, searchParams, selectedNodeIds.length, setSearchParams]);
 
   // Ensure URL always has a valid tab parameter
   useEffect(() => {
@@ -237,21 +326,25 @@ export function EnhancedWorkflowDetailPage() {
             break;
           case '2':
             event.preventDefault();
-            handleTabChange('io');
+            handleTabChange('list');
             break;
           case '3':
             event.preventDefault();
-            handleTabChange('webhooks');
+            handleTabChange('io');
             break;
           case '4':
             event.preventDefault();
-            handleTabChange('notes');
+            handleTabChange('webhooks');
             break;
           case '5':
             event.preventDefault();
-            handleTabChange('identity');
+            handleTabChange('notes');
             break;
           case '6':
+            event.preventDefault();
+            handleTabChange('identity');
+            break;
+          case '7':
             event.preventDefault();
             handleTabChange('insights');
             break;
@@ -366,6 +459,41 @@ export function EnhancedWorkflowDetailPage() {
               isFullscreen={isFullscreen}
               onFocusModeChange={setFocusMode}
             />
+          )}
+
+          {activeTab === 'list' && (
+            <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+              <AgentFilterBar
+                nodes={listViewNodes}
+                onAgentFilter={handleListAgentFilter}
+                selectedAgent={listSelectedAgent}
+              />
+              <div className="flex-1 min-h-0 overflow-hidden">
+                <HierarchicalListView
+                  nodes={filteredListViewNodes}
+                  onNodeClick={handleListNodeClick}
+                  workflowId={runId || ''}
+                  viewMode={viewMode}
+                />
+              </div>
+              <NodeDetailSidebar
+                node={listSelectedNode ? (listSelectedNode.data as {
+                  workflow_id: string;
+                  execution_id: string;
+                  agent_node_id: string;
+                  reasoner_id: string;
+                  status: string;
+                  started_at: string;
+                  completed_at?: string;
+                  duration_ms?: number;
+                  workflow_depth: number;
+                  task_name?: string;
+                  agent_name?: string;
+                }) : null}
+                isOpen={listSidebarOpen}
+                onClose={handleListSidebarClose}
+              />
+            </div>
           )}
 
           {activeTab === 'io' && (

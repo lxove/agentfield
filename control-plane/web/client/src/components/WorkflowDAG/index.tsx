@@ -20,7 +20,6 @@ import type { CSSProperties } from "react";
 import { AgentLegend } from "./AgentLegend";
 import FloatingConnectionLine from "./FloatingConnectionLine";
 import FloatingEdge from "./FloatingEdge";
-import { HierarchicalListView } from "./HierarchicalListView";
 import { LayoutControls } from "./LayoutControls";
 import { NodeDetailSidebar } from "./NodeDetailSidebar";
 import { VirtualizedDAG } from "./VirtualizedDAG";
@@ -1206,62 +1205,6 @@ function decorateEdgesWithStatus(
     },
     []
   );
-
-  // Render hierarchical list view
-  if (currentLayout === 'hierarchical') {
-    return (
-      <div className={cn("relative h-full w-full", className)}>
-        <div className="flex h-full w-full flex-col">
-          <div className="flex-1 overflow-hidden min-h-0">
-            <div className="relative flex h-full w-full flex-1 overflow-hidden min-h-0">
-              <HierarchicalListView
-                nodes={nodes}
-                onNodeClick={(node) => {
-                  const nodeData = node.data as unknown as WorkflowDAGNode;
-                  setSelectedNode(nodeData);
-                  setSidebarOpen(true);
-                }}
-                workflowId={workflowId}
-                viewMode={viewMode}
-                durationStats={durationStats}
-              />
-
-              {/* Agent Legend - positioned in top-left */}
-              <div className="absolute top-4 left-4 z-30">
-                <AgentLegend
-                  onAgentFilter={handleAgentFilter}
-                  selectedAgent={selectedAgent}
-                  compact={false}
-                  nodes={nodes}
-                />
-              </div>
-
-              {/* Layout Controls - positioned in top-right */}
-              <div className="absolute top-4 right-4 z-30 flex gap-2">
-                <LayoutControls
-                  availableLayouts={layoutManager.getAvailableLayouts(nodes.length)}
-                  currentLayout={currentLayout}
-                  onLayoutChange={handleLayoutChange}
-                  isSlowLayout={(layout) => layoutManager.isSlowLayout(layout)}
-                  getLayoutDescription={(layout) => layoutManager.getLayoutDescription(layout)}
-                  isLargeGraph={layoutManager.isLargeGraph(nodes.length)}
-                  isApplyingLayout={isApplyingLayout}
-                  layoutProgress={layoutProgress}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Node Detail Sidebar */}
-        <NodeDetailSidebar
-          node={selectedNode}
-          isOpen={sidebarOpen}
-          onClose={handleCloseSidebar}
-        />
-      </div>
-    );
-  }
 
   // Render DeckGL view for large graphs
   if (shouldUseDeckGL && deckGraphData) {

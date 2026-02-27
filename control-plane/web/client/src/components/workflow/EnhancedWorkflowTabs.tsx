@@ -1,6 +1,7 @@
 import type { Icon } from "@/components/ui/icon-bridge";
 import {
   GitBranch,
+  List,
   Database,
   BarChart3,
   ShieldCheck,
@@ -21,7 +22,7 @@ import type { WorkflowSummary, WorkflowTimelineNode } from "../../types/workflow
 import { summarizeWorkflowWebhook } from "../../utils/webhook";
 import type { WorkflowVCChainResponse } from "../../types/did";
 
-type WorkflowTabId = 'graph' | 'io' | 'webhooks' | 'notes' | 'identity' | 'insights';
+type WorkflowTabId = 'graph' | 'list' | 'io' | 'webhooks' | 'notes' | 'identity' | 'insights';
 
 interface EnhancedWorkflowTabsProps {
   activeTab: WorkflowTabId;
@@ -49,6 +50,8 @@ export function EnhancedWorkflowTabs({
   const getTabCount = (tabType: WorkflowTabId) => {
     switch (tabType) {
       case 'graph':
+        return timeline.length || workflow.total_executions;
+      case 'list':
         return timeline.length || workflow.total_executions;
       case 'io':
         return timeline.filter((node) => node.input_data || node.output_data)?.length || 0;
@@ -82,11 +85,19 @@ export function EnhancedWorkflowTabs({
       count: getTabCount('graph'),
     },
     {
+      id: 'list',
+      label: 'List',
+      icon: List,
+      description: 'Hierarchical execution list',
+      shortcut: '2',
+      count: getTabCount('list'),
+    },
+    {
       id: 'io',
       label: 'Inputs & Outputs',
       icon: Database,
       description: 'Inspect node inputs and outputs',
-      shortcut: '2',
+      shortcut: '3',
       count: getTabCount('io'),
     },
     {
@@ -94,7 +105,7 @@ export function EnhancedWorkflowTabs({
       label: 'Webhooks',
       icon: RadioTower,
       description: 'Callback deliveries and status',
-      shortcut: '3',
+      shortcut: '4',
       count: getTabCount('webhooks'),
     },
     {
@@ -102,7 +113,7 @@ export function EnhancedWorkflowTabs({
       label: 'Notes',
       icon: FileText,
       description: 'Operator notes, annotations, and context',
-      shortcut: '4',
+      shortcut: '5',
       count: getTabCount('notes'),
     },
     {
@@ -110,7 +121,7 @@ export function EnhancedWorkflowTabs({
       label: 'Identity',
       icon: ShieldCheck,
       description: 'Trust, credentials, and verification chain',
-      shortcut: '5',
+      shortcut: '6',
       count: getTabCount('identity'),
     },
     {
@@ -118,7 +129,7 @@ export function EnhancedWorkflowTabs({
       label: 'Insights',
       icon: BarChart3,
       description: 'Performance and health analytics',
-      shortcut: '6',
+      shortcut: '7',
       count: getTabCount('insights'),
     },
   ];
@@ -173,6 +184,13 @@ export function EnhancedWorkflowTabs({
             <span>Total nodes: {timeline.length}</span>
             <span>•</span>
             <span>Max depth: {workflow.max_depth}</span>
+          </div>
+        )}
+
+        {activeTab === 'list' && timeline.length > 0 && (
+          <div className="flex items-center gap-2">
+            <List className="w-3 h-3" />
+            <span>{timeline.length} executions</span>
           </div>
         )}
 
