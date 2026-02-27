@@ -18,10 +18,9 @@ import {
   PauseFilled,
   Time,
   Calendar,
-  User,
 } from '@/components/ui/icon-bridge';
 import { cn } from '@/lib/utils';
-import { agentColorManager, type AgentColor } from '@/utils/agentColorManager';
+import { agentColorManager } from '@/utils/agentColorManager';
 import {
   normalizeExecutionStatus,
   getStatusLabel,
@@ -323,19 +322,15 @@ function ListItem({
   const performanceIntensity = data.performanceIntensity ?? 0;
 
   // Border and highlight colors
-  let borderColor = 'var(--border)';
   let bgColor = `color-mix(in srgb, var(--muted) ${depthOpacity * 100}%, transparent)`;
 
   if (isFocusPrimary) {
-    borderColor = 'var(--status-success-border)';
     bgColor = 'color-mix(in srgb, var(--status-success) 8%, transparent)';
   } else if (isSearchMatch) {
-    borderColor = 'var(--status-info-border)';
     bgColor = 'color-mix(in srgb, var(--status-info) 6%, transparent)';
   } else if (viewMode === 'performance') {
     const heat = Math.min(65, 25 + performanceIntensity * 45);
     bgColor = `color-mix(in srgb, var(--status-warning) ${heat}%, transparent)`;
-    borderColor = `color-mix(in srgb, var(--status-warning) ${Math.min(55, 35 + performanceIntensity * 25)}%, transparent)`;
   }
 
   return (

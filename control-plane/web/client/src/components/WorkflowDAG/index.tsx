@@ -1217,7 +1217,7 @@ function decorateEdgesWithStatus(
               <HierarchicalListView
                 nodes={nodes}
                 onNodeClick={(node) => {
-                  const nodeData = node.data as WorkflowDAGNode;
+                  const nodeData = node.data as unknown as WorkflowDAGNode;
                   setSelectedNode(nodeData);
                   setSidebarOpen(true);
                 }}
