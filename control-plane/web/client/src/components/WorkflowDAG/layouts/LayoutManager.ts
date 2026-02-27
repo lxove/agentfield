@@ -246,6 +246,10 @@ export class LayoutManager {
         const result = this.applyDagreLayout(nodes, edges, layoutType);
         onProgress?.(100);
         return result;
+      } else if (layoutType === 'hierarchical') {
+        // Hierarchical layout requires no computation - return nodes/edges unchanged
+        onProgress?.(100);
+        return { nodes, edges };
       } else {
         // Use ELK layout
         onProgress?.(25);
