@@ -3,7 +3,7 @@ import type { Node, Edge } from '@xyflow/react';
 import { ELKLayoutEngine, type ELKLayoutType } from './ELKLayoutEngine';
 
 export type DagreLayoutType = 'tree' | 'flow';
-export type AllLayoutType = DagreLayoutType | ELKLayoutType;
+export type AllLayoutType = DagreLayoutType | ELKLayoutType | 'hierarchical';
 
 interface LayoutWorkerRequestMessage {
   id: string;
@@ -165,10 +165,10 @@ export class LayoutManager {
   getAvailableLayouts(nodeCount: number): AllLayoutType[] {
     if (this.isLargeGraph(nodeCount)) {
       // Large graphs: All layouts available, but ELK layouts preferred
-      return [...ELKLayoutEngine.getAvailableLayouts(), 'tree', 'flow'];
+      return [...ELKLayoutEngine.getAvailableLayouts(), 'tree', 'flow', 'hierarchical'];
     } else {
       // Small graphs: All layouts available, but Dagre layouts preferred
-      return ['tree', 'flow', ...ELKLayoutEngine.getAvailableLayouts()];
+      return ['tree', 'flow', ...ELKLayoutEngine.getAvailableLayouts(), 'hierarchical'];
     }
   }
 
@@ -189,8 +189,8 @@ export class LayoutManager {
    * Check if a layout type is slow for large graphs
    */
   isSlowLayout(layoutType: AllLayoutType): boolean {
-    if (layoutType === 'tree' || layoutType === 'flow') {
-      return false; // Dagre layouts are generally fast
+    if (layoutType === 'tree' || layoutType === 'flow' || layoutType === 'hierarchical') {
+      return false; // Dagre and hierarchical layouts are generally fast
     }
     return ELKLayoutEngine.isSlowForLargeGraphs(layoutType as ELKLayoutType);
   }
@@ -204,6 +204,8 @@ export class LayoutManager {
         return 'Tree layout - Top to bottom hierarchy';
       case 'flow':
         return 'Flow layout - Left to right flow';
+      case 'hierarchical':
+        return 'Hierarchical list - Collapsible tree view';
       default:
         return ELKLayoutEngine.getLayoutDescription(layoutType as ELKLayoutType);
     }
@@ -244,6 +246,10 @@ export class LayoutManager {
         const result = this.applyDagreLayout(nodes, edges, layoutType);
         onProgress?.(100);
         return result;
+      } else if (layoutType === 'hierarchical') {
+        // Hierarchical layout requires no computation - return nodes/edges unchanged
+        onProgress?.(100);
+        return { nodes, edges };
       } else {
         // Use ELK layout
         onProgress?.(25);

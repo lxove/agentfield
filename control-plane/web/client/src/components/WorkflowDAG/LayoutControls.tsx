@@ -22,6 +22,7 @@ const LAYOUT_LABELS: Record<AllLayoutType, string> = {
   rectpacking: 'Rectangle',
   layered: 'Layered',
   mrtree: 'Tree',
+  hierarchical: 'List View',
 };
 
 export function LayoutControls({
