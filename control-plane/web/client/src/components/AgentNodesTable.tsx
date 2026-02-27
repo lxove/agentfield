@@ -8,8 +8,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, ChevronUp, ServerProxy, Time, Earth, Network_3 } from '@/components/ui/icon-bridge';
 import { getNodeDetails } from '../services/api';
 import StatusIndicator from './ui/status-indicator';
@@ -124,96 +122,91 @@ const NodeRow: React.FC<NodeRowProps> = ({ nodeSummary }) => {
   };
 
   return (
-    <Collapsible
-      asChild
-      open={isExpanded}
-      onOpenChange={setIsExpanded}
-    >
-      <>
+    <>
+      <TableRow>
+        <TableCell>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleExpand();
+            }}
+            className="h-8 w-8 p-0 flex items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
+          >
+            {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            <span className="sr-only">Toggle</span>
+          </button>
+        </TableCell>
+        <TableCell className="font-medium">{nodeSummary.id}</TableCell>
+        <TableCell>{nodeSummary.team_id}</TableCell>
+        <TableCell>{nodeSummary.version}</TableCell>
+        <TableCell>
+          <StatusIndicator
+            status={nodeSummary.lifecycle_status}
+            healthStatus={nodeSummary.health_status}
+          />
+        </TableCell>
+        <TableCell>{nodeSummary.reasoner_count}</TableCell>
+        <TableCell>{nodeSummary.skill_count}</TableCell>
+      </TableRow>
+      {isExpanded && (
         <TableRow>
-          <TableCell>
-            <CollapsibleTrigger asChild>
-              <Button
-                variant="ghost"
-                  onClick={toggleExpand}
-                className="h-8 w-8 p-0"
-              >
-                {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                <span className="sr-only">Toggle</span>
-              </Button>
-            </CollapsibleTrigger>
+          <TableCell colSpan={7} className="p-0">
+            <div className="p-6 bg-muted/30 border-t">
+              {isLoadingDetails && (
+                <div className="flex items-center gap-2">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  <p className="text-body-small">Loading node details...</p>
+                </div>
+              )}
+              {errorDetails && (
+                <p className="text-sm text-destructive">{errorDetails}</p>
+              )}
+              {nodeDetails && (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="flex items-center gap-2">
+                      <Earth className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-body-small">Base URL</p>
+                        <p className="text-sm font-mono">{nodeDetails.base_url}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <ServerProxy className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-body-small">Registered</p>
+                        <p className="text-sm">{nodeDetails.registered_at ? (() => {
+                          const date = new Date(nodeDetails.registered_at);
+                          return !isNaN(date.getTime()) ? date.toLocaleString() : 'Invalid Date';
+                        })() : 'N/A'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Time className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-body-small">Last Heartbeat</p>
+                        <p className="text-sm">{nodeDetails.last_heartbeat ? (() => {
+                          const date = new Date(nodeDetails.last_heartbeat);
+                          return !isNaN(date.getTime()) ? date.toLocaleString() : 'Invalid Date';
+                        })() : 'N/A'}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <ReasonersList reasoners={nodeDetails.reasoners ?? []} />
+                    <SkillsList skills={nodeDetails.skills ?? []} />
+                  </div>
+                </div>
+              )}
+            </div>
           </TableCell>
-          <TableCell className="font-medium">{nodeSummary.id}</TableCell>
-          <TableCell>{nodeSummary.team_id}</TableCell>
-          <TableCell>{nodeSummary.version}</TableCell>
-          <TableCell>
-            <StatusIndicator
-              status={nodeSummary.lifecycle_status}
-              healthStatus={nodeSummary.health_status}
-            />
-          </TableCell>
-          <TableCell>{nodeSummary.reasoner_count}</TableCell>
-          <TableCell>{nodeSummary.skill_count}</TableCell>
         </TableRow>
-        <CollapsibleContent asChild>
-          <TableRow>
-            <TableCell colSpan={7} className="p-0">
-              <div className="p-6 bg-muted/30 border-t">
-                {isLoadingDetails && (
-                  <div className="flex items-center gap-2">
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                    <p className="text-body-small">Loading node details...</p>
-                  </div>
-                )}
-                {errorDetails && (
-                  <p className="text-sm text-destructive">{errorDetails}</p>
-                )}
-                {nodeDetails && (
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="flex items-center gap-2">
-                        <Earth className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-body-small">Base URL</p>
-                          <p className="text-sm font-mono">{nodeDetails.base_url}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <ServerProxy className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-body-small">Registered</p>
-                          <p className="text-sm">{nodeDetails.registered_at ? (() => {
-                            const date = new Date(nodeDetails.registered_at);
-                            return !isNaN(date.getTime()) ? date.toLocaleString() : 'Invalid Date';
-                          })() : 'N/A'}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Time className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-body-small">Last Heartbeat</p>
-                          <p className="text-sm">{nodeDetails.last_heartbeat ? (() => {
-                            const date = new Date(nodeDetails.last_heartbeat);
-                            return !isNaN(date.getTime()) ? date.toLocaleString() : 'Invalid Date';
-                          })() : 'N/A'}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      <ReasonersList reasoners={nodeDetails.reasoners ?? []} />
-                      <SkillsList skills={nodeDetails.skills ?? []} />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </TableCell>
-          </TableRow>
-        </CollapsibleContent>
-      </>
-    </Collapsible>
+      )}
+    </>
   );
 };
 
