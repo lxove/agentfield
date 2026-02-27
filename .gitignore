@@ -12,8 +12,11 @@ bin/
 dist/
 **/dist/
 coverage.out
+coverage*.out
+coverage*.txt
 *.test
 tmp/
+agentfield-server
 
 # Python
 __pycache__/
