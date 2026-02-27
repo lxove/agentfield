@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Node } from '@xyflow/react';
 import { useVirtualizer } from '@tanstack/react-virtual';
+// Uses @radix-ui/react-collapsible for tree structure collapse/expand functionality
 import {
   Collapsible,
   CollapsibleContent,
