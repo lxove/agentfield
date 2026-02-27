@@ -1212,8 +1212,8 @@ function decorateEdgesWithStatus(
     return (
       <div style={{ position: 'relative', width: '100%', height: '100%' }}>
         <HierarchicalListView
-          nodes={decoratedNodes}
-          onNodeClick={handleNodeClick}
+          nodes={nodes}
+          onNodeClick={(node) => handleNodeClick({} as React.MouseEvent, node)}
           workflowId={workflowId}
           viewMode={viewMode}
           durationStats={durationStats}
@@ -1227,7 +1227,20 @@ function decorateEdgesWithStatus(
           />
         </div>
         <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 10 }}>
-          <LayoutControls />
+          <LayoutControls
+            availableLayouts={layoutManager.getAvailableLayouts(
+              nodes.length
+            )}
+            currentLayout={currentLayout}
+            onLayoutChange={handleLayoutChange}
+            isSlowLayout={(layout) =>
+              layoutManager.isSlowLayout(layout)
+            }
+            getLayoutDescription={(layout) =>
+              layoutManager.getLayoutDescription(layout)
+            }
+            isLargeGraph={layoutManager.isLargeGraph(nodes.length)}
+          />
         </div>
         {selectedNode && (
           <NodeDetailSidebar
